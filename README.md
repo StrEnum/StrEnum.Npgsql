@@ -1,14 +1,12 @@
 # StrEnum.Npgsql
 
-Allows to use [StrEnum](https://github.com/StrEnum/StrEnum/) string enums with [Npgsql](https://www.npgsql.org/) and Entity Framework Core, including the ability to map them to native Postgres enum types - similar to what [`MapEnum`](https://www.npgsql.org/efcore/mapping/enum.html) does for regular C# enums.
-
-Built on top of [StrEnum.EntityFrameworkCore](https://www.nuget.org/packages/StrEnum.EntityFrameworkCore/).
+Lets you use [StrEnum](https://github.com/StrEnum/StrEnum/) string enums with [Npgsql](https://www.npgsql.org/) and Entity Framework Core, including the ability to map them to native Postgres enum types — similar to what [`MapEnum`](https://www.npgsql.org/efcore/mapping/enum.html) does for regular C# enums.
 
 Supports EF Core 6 – 10.
 
 ## Installation
 
-You can install [StrEnum.Npgsql](https://www.nuget.org/packages/StrEnum.Npgsql/) using the .NET CLI:
+Install [StrEnum.Npgsql](https://www.nuget.org/packages/StrEnum.Npgsql/) via the .NET CLI:
 
 ```
 dotnet add package StrEnum.Npgsql
@@ -18,12 +16,12 @@ dotnet add package StrEnum.Npgsql
 
 `StrEnum.Npgsql` lets you choose how Entity Framework stores your string enums in Postgres:
 
-* as plain **text** columns (the default — same behaviour as `StrEnum.EntityFrameworkCore`), or
+* as plain **text** columns (the default), or
 * as native **Postgres enum** types created via `CREATE TYPE ... AS ENUM (...)`.
 
 ### Storing string enums as text
 
-Define a string enum and an entity that uses it:
+#### Defining a string enum and an entity
 
 ```csharp
 public class Sport: StringEnum<Sport>
@@ -50,7 +48,9 @@ public class Race
 }
 ```
 
-And call `UseStringEnums()` when configuring your DB context:
+#### Wiring it up
+
+Call `UseStringEnums()` when configuring your DB context:
 
 ```csharp
 public class RaceContext: DbContext
@@ -66,7 +66,7 @@ public class RaceContext: DbContext
 }
 ```
 
-EF Core will store the `Sport` property in a `text` column. Running `dotnet ef migrations add Init` will produce:
+EF Core stores the `Sport` property in a `text` column. Running `dotnet ef migrations add Init` produces:
 
 ```csharp
 migrationBuilder.CreateTable(
@@ -105,14 +105,14 @@ public class RaceContext: DbContext
 }
 ```
 
-`UseStringEnums()` is required in both modes - it teaches EF Core how to recognise `StringEnum<T>` properties as scalars rather than navigation properties. `MapStringEnumAsPostgresEnum<TEnum>` then overrides the column type to the Postgres enum.
+> `UseStringEnums()` is required in both modes — it teaches EF Core how to recognise `StringEnum<T>` properties as scalars rather than navigation properties. `MapStringEnumAsPostgresEnum<TEnum>` then overrides the column type to the Postgres enum.
 
 `MapStringEnumAsPostgresEnum<TEnum>()` does two things:
 
 1. Registers a Postgres enum type in the EF model, so a `CREATE TYPE` migration is produced. Labels are taken from the string enum's underlying values, in declaration order.
 2. Walks all entity types and configures every property of type `TEnum` to use that Postgres enum as its column type, applying a value converter that maps a `Sport` member to its underlying string value.
 
-The generated migration will look like this:
+The generated migration looks like this:
 
 ```csharp
 migrationBuilder.AlterDatabase()
@@ -129,9 +129,9 @@ migrationBuilder.CreateTable(
     constraints: table => table.PrimaryKey("PK_Races", x => x.Id));
 ```
 
-#### Customizing the Postgres enum name and schema
+#### Customising the Postgres enum name and schema
 
-By default the Postgres enum name is the snake_cased CLR type name (`Sport` → `sport`). You can override the name and schema:
+By default the Postgres enum name is the snake_cased CLR type name (`Sport` → `sport`). Override the name and schema if you need to:
 
 ```csharp
 modelBuilder.MapStringEnumAsPostgresEnum<Sport>(name: "sport_kind", schema: "races");
@@ -139,7 +139,7 @@ modelBuilder.MapStringEnumAsPostgresEnum<Sport>(name: "sport_kind", schema: "rac
 
 #### Configuring individual properties
 
-If you want fine-grained control over which properties map to a Postgres enum, call `HasPostgresStringEnum<TEnum>()` per property:
+For fine-grained control over which properties map to a Postgres enum, call `HasPostgresStringEnum<TEnum>()` per property:
 
 ```csharp
 modelBuilder.HasPostgresStringEnum<Sport>(); // creates the CREATE TYPE migration
@@ -153,18 +153,18 @@ modelBuilder.Entity<Race>()
 
 ### Mixing both modes
 
-Nothing stops you from using both modes in the same context:
+Both modes can coexist in the same context:
 
 ```csharp
 modelBuilder.MapStringEnumAsPostgresEnum<Sport>();    // Sport -> sport enum
 // Country has no Postgres-enum mapping, so it stays as text
 ```
 
-Properties of `Country` will be stored as `text` if you also called `.UseStringEnums()` on the options builder.
+`Country` properties stay as `text` because `UseStringEnums()` is on the options builder.
 
 ### Querying
 
-EF Core translates LINQ operations on string enums into SQL just like in [StrEnum.EntityFrameworkCore](https://github.com/StrEnum/StrEnum.EntityFrameworkCore):
+EF Core translates LINQ operations on string enums into SQL:
 
 ```csharp
 var trailRuns = await context.Races
@@ -184,7 +184,7 @@ var cyclingRaces = await context.Races
 
 ## Acknowledgements
 
-Built on top of [StrEnum.EntityFrameworkCore](https://github.com/StrEnum/StrEnum.EntityFrameworkCore) and [Npgsql.EntityFrameworkCore.PostgreSQL](https://github.com/npgsql/efcore.pg).
+Built on top of [Npgsql.EntityFrameworkCore.PostgreSQL](https://github.com/npgsql/efcore.pg). For provider-agnostic EF Core support, see [StrEnum.EntityFrameworkCore](https://github.com/StrEnum/StrEnum.EntityFrameworkCore).
 
 ## License
 
